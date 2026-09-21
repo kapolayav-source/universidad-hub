@@ -8,17 +8,19 @@ import {
   MessageCircle,
   FolderGit2,
   GraduationCap,
-  Layers,
-  Clock,
+  Library,
+  Plus,
 } from 'lucide-react';
 import { Course } from '../../types/academic';
 
 interface SidebarProps {
-  currentView: 'dashboard' | 'course' | 'tasks' | 'schedule';
+  currentView: 'dashboard' | 'course' | 'tasks' | 'schedule' | 'library';
   selectedCourseId: string | null;
   courses: Course[];
-  onSelectView: (view: 'dashboard' | 'tasks' | 'schedule') => void;
+  semesterNumber: number;
+  onSelectView: (view: 'dashboard' | 'tasks' | 'schedule' | 'library') => void;
   onSelectCourse: (courseId: string) => void;
+  onAddCourseClick: () => void;
   totalCredits: number;
 }
 
@@ -26,13 +28,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
   currentView,
   selectedCourseId,
   courses,
+  semesterNumber,
   onSelectView,
   onSelectCourse,
+  onAddCourseClick,
   totalCredits,
 }) => {
   return (
     <aside aria-label="Navegación principal" className="w-64 bg-white border-r border-slate-200 h-[calc(100vh-4rem)] sticky top-16 hidden md:flex flex-col justify-between p-4 overflow-y-auto">
-      <div className="space-y-6">
+      <div className="space-y-5">
         {/* Navegación Principal */}
         <div className="space-y-1">
           <span className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">
@@ -48,6 +52,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
           >
             <LayoutDashboard className="w-4 h-4" />
             <span>Panel Principal</span>
+          </button>
+
+          <button
+            onClick={() => onSelectView('library')}
+            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+              currentView === 'library'
+                ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/20'
+                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+            }`}
+          >
+            <Library className="w-4 h-4" />
+            <div className="flex items-center justify-between flex-1">
+              <span>Biblioteca & Archivos</span>
+              <span className="text-[10px] bg-blue-100 text-blue-800 px-1.5 py-0.2 rounded font-bold">Fase 2</span>
+            </div>
           </button>
 
           <button
@@ -75,18 +94,23 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </button>
         </div>
 
-        {/* Cursos del 4.º Semestre */}
+        {/* Cursos del Semestre Actual */}
         <div className="space-y-1">
           <div className="flex items-center justify-between px-3 mb-1.5">
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-              Cursos (4.º Semestre)
+              Cursos ({semesterNumber}.º Semestre)
             </span>
-            <span className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-mono font-semibold">
-              {courses.length}
-            </span>
+            <button
+              onClick={onAddCourseClick}
+              className="text-[10px] font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-0.5 hover:underline cursor-pointer"
+              title="Agregar nueva asignatura dinámicamente"
+            >
+              <Plus className="w-3 h-3" />
+              <span>Nuevo</span>
+            </button>
           </div>
 
-          <div className="space-y-0.5">
+          <div className="space-y-0.5 max-h-48 overflow-y-auto pr-1">
             {courses.map((course) => {
               const isSelected = currentView === 'course' && selectedCourseId === course.id;
               return (
@@ -137,25 +161,25 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         {/* Módulos Planificados en Roadmap */}
-        <div className="space-y-1 pt-2 border-t border-slate-100">
+        <div className="space-y-1 pt-1 border-t border-slate-100">
           <span className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
             Próximos Módulos
           </span>
-          <div className="px-3 py-1.5 text-xs text-slate-400 flex items-center justify-between">
+          <div className="px-3 py-1 text-xs text-slate-400 flex items-center justify-between">
             <span className="flex items-center gap-2">
               <FolderGit2 className="w-3.5 h-3.5" />
               <span>Google Classroom</span>
             </span>
             <span className="text-[9px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-mono">Fase 5</span>
           </div>
-          <div className="px-3 py-1.5 text-xs text-slate-400 flex items-center justify-between">
+          <div className="px-3 py-1 text-xs text-slate-400 flex items-center justify-between">
             <span className="flex items-center gap-2">
               <MessageCircle className="w-3.5 h-3.5" />
               <span>WhatsApp Alerts</span>
             </span>
             <span className="text-[9px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-mono">Fase 6</span>
           </div>
-          <div className="px-3 py-1.5 text-xs text-slate-400 flex items-center justify-between">
+          <div className="px-3 py-1 text-xs text-slate-400 flex items-center justify-between">
             <span className="flex items-center gap-2">
               <Sparkles className="w-3.5 h-3.5" />
               <span>Tutor IA RAG</span>
@@ -166,8 +190,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       {/* Footer del Sidebar */}
-      <div className="pt-4 border-t border-slate-100 text-[11px] text-slate-400 text-center">
-        <span>Universidad Hub • v1.0 MVP</span>
+      <div className="pt-3 border-t border-slate-100 text-[11px] text-slate-400 text-center">
+        <span>Universidad Hub • Fase 2 Activa</span>
       </div>
     </aside>
   );

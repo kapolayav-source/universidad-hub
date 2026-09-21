@@ -7,6 +7,7 @@ export interface UserProfile {
   avatarUrl?: string;
   role: UserRole;
   phoneWhatsapp?: string;
+  studentCode?: string;
   universityId?: string;
   careerId?: string;
   currentSemesterId?: string;
@@ -47,6 +48,39 @@ export interface Teacher {
   email?: string;
   department?: string;
   officeLocation?: string;
+}
+
+export interface CourseSyllabus {
+  id: string;
+  courseId: string;
+  academicYear: string;
+  version?: string;
+  summary: string;
+  competencies: string[];
+  evaluationSystem: string;
+  fileUrl?: string;
+  fileName?: string;
+  fileSize?: string;
+  updatedAt: string;
+}
+
+export type MaterialCategory = 'lecture' | 'reading' | 'practice' | 'syllabus' | 'exam' | 'other';
+
+export interface CourseMaterial {
+  id: string;
+  courseId: string;
+  courseName?: string;
+  courseCode?: string;
+  title: string;
+  description?: string;
+  category: MaterialCategory;
+  fileUrl: string;
+  fileName: string;
+  fileType: 'pdf' | 'docx' | 'pptx' | 'xlsx' | 'zip' | 'link' | 'other';
+  fileSize: string;
+  uploadedBy?: string;
+  downloadCount?: number;
+  createdAt: string;
 }
 
 export interface CourseSchedule {
@@ -110,4 +144,7 @@ export interface Course {
   assignmentsCount: number;
   examsCount: number;
   progressPercentage: number;
+  materialsCount?: number;
+  syllabus?: CourseSyllabus;
 }
+
