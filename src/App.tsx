@@ -13,8 +13,12 @@ import { EditCourseModal } from './components/courses/EditCourseModal';
 import { TeacherModal } from './components/courses/TeacherModal';
 import { SyllabusModal } from './components/courses/SyllabusModal';
 import { AcademicSelectorModal } from './components/academic/AcademicSelectorModal';
+import { CurriculumExplorerModal } from './components/academic/CurriculumExplorerModal';
+import { StudentManagementModal } from './components/admin/StudentManagementModal';
+import { AuthScreen } from './components/auth/AuthScreen';
 import { SupabaseConfigBanner } from './components/ui/SupabaseConfigBanner';
 import { academicService } from './services/academicService';
+import { authService } from './services/authService';
 import {
   University,
   Faculty,
@@ -25,7 +29,6 @@ import {
   Assignment,
   Exam,
   UserProfile,
-  UserRole,
   CourseMaterial,
   CourseSyllabus,
   Teacher,
@@ -39,8 +42,13 @@ import {
 } from './data/initialData';
 
 export default function App() {
-  // Estado Académico y Usuario
-  const [user, setUser] = useState<UserProfile>(INITIAL_USER_PROFILE);
+  // Estado de Autenticación y Sesión Real
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(() => {
+    return authService.getCurrentUser();
+  });
+  const [authInitialized, setAuthInitialized] = useState(false);
+
+  // Estado Académico
   const [university] = useState<University>(INITIAL_UNIVERSITY);
   const [faculty] = useState<Faculty>(INITIAL_FACULTY);
   const [career] = useState<Career>(INITIAL_CAREER);
@@ -59,6 +67,8 @@ export default function App() {
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isHierarchyModalOpen, setIsHierarchyModalOpen] = useState(false);
+  const [isCurriculumExplorerOpen, setIsCurriculumExplorerOpen] = useState(false);
+  const [isStudentManagementOpen, setIsStudentManagementOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Estados de Modales Dinámicos (Fase 2)
@@ -74,11 +84,26 @@ export default function App() {
   const [isSyllabusModalOpen, setIsSyllabusModalOpen] = useState(false);
   const [syllabusTargetCourse, setSyllabusTargetCourse] = useState<Course | null>(null);
 
-  // Cargar datos iniciales
+  // Inicializar autenticación y recarga al cambiar sesión
   useEffect(() => {
-    async function loadData() {
+    const unsub = authService.onAuthStateChange((user) => {
+      setCurrentUser(user);
+      setAuthInitialized(true);
+      if (user && user.enrolledSemesterNumber) {
+        setSemester((prev) => ({
+          ...prev,
+          number: user.enrolledSemesterNumber,
+          academicPeriod: `2026-${user.enrolledSemesterNumber % 2 === 0 ? 'I' : 'II'}`,
+        }));
+      }
+    });
+    return () => unsub();
+  }, []);
+
+  // Cargar datos del sistema cuando el usuario está autenticado
+  const reloadAcademicData = async () => {
+    try {
       const [
-        fetchedUser,
         fetchedCourses,
         fetchedTeachers,
         fetchedClasses,
@@ -86,7 +111,6 @@ export default function App() {
         fetchedExams,
         fetchedMaterials,
       ] = await Promise.all([
-        academicService.getUserProfile(),
         academicService.getCourses(),
         academicService.getTeachers(),
         academicService.getClasses(),
@@ -95,7 +119,6 @@ export default function App() {
         academicService.getMaterials(),
       ]);
 
-      setUser(fetchedUser);
       setCourses(fetchedCourses);
       setTeachers(fetchedTeachers);
       setClasses(fetchedClasses);
@@ -103,7 +126,7 @@ export default function App() {
       setExams(fetchedExams);
       setMaterials(fetchedMaterials);
 
-      // Cargar sílabos para los cursos disponibles
+      // Cargar sílabos
       const syllabiMap: Record<string, CourseSyllabus> = {};
       for (const c of fetchedCourses) {
         const syl = await academicService.getSyllabus(c.id);
@@ -112,9 +135,38 @@ export default function App() {
         }
       }
       setSyllabi(syllabiMap);
+    } catch (err) {
+      console.error('Error cargando datos académicos:', err);
     }
-    loadData();
-  }, []);
+  };
+
+  useEffect(() => {
+    if (currentUser) {
+      reloadAcademicData();
+    }
+  }, [currentUser]);
+
+  // Manejador de Cierre de Sesión Seguro
+  const handleSignOut = async () => {
+    await authService.signOut();
+    setCurrentUser(null);
+    setSelectedCourseId(null);
+    setCurrentView('dashboard');
+    setIsMobileMenuOpen(false);
+  };
+
+  // Manejador de Inicio de Sesión
+  const handleLoginSuccess = (user: UserProfile) => {
+    setCurrentUser(user);
+    if (user.enrolledSemesterNumber) {
+      setSemester((prev) => ({
+        ...prev,
+        number: user.enrolledSemesterNumber,
+        academicPeriod: `2026-${user.enrolledSemesterNumber % 2 === 0 ? 'I' : 'II'}`,
+      }));
+    }
+    reloadAcademicData();
+  };
 
   // Manejadores de navegación
   const handleSelectCourse = (courseId: string) => {
@@ -140,13 +192,9 @@ export default function App() {
     setAssignments((prev) => [created, ...prev]);
   };
 
-  const handleSelectRole = (role: UserRole) => {
-    academicService.updateUserProfile({ role }).then((updated) => setUser(updated));
-  };
-
   const handleUpdateUserProfile = async (updates: Partial<UserProfile>) => {
     const updated = await academicService.updateUserProfile(updates);
-    setUser(updated);
+    setCurrentUser(updated);
   };
 
   const handleSelectSemester = (semesterNumber: number) => {
@@ -171,10 +219,8 @@ export default function App() {
   };
 
   const handleDeleteMaterial = async (materialId: string) => {
-    const success = await academicService.deleteMaterial(materialId);
-    if (success) {
-      setMaterials((prev) => prev.filter((m) => m.id !== materialId));
-    }
+    await academicService.deleteMaterial(materialId);
+    setMaterials((prev) => prev.filter((m) => m.id !== materialId));
   };
 
   // --- Operaciones Dinámicas Fase 2: Cursos ---
@@ -192,20 +238,18 @@ export default function App() {
   };
 
   const handleUpdateCourse = async (courseId: string, updates: Partial<Course>) => {
-    const updatedCourses = await academicService.updateCourse(courseId, updates);
-    if (updatedCourses) {
-      setCourses(updatedCourses);
+    const updatedCourse = await academicService.updateCourse(courseId, updates);
+    if (updatedCourse) {
+      setCourses((prev) => prev.map((c) => (c.id === courseId ? updatedCourse : c)));
     }
   };
 
   const handleDeleteCourse = async (courseId: string) => {
-    const success = await academicService.deleteCourse(courseId);
-    if (success) {
-      setCourses((prev) => prev.filter((c) => c.id !== courseId));
-      if (selectedCourseId === courseId) {
-        setSelectedCourseId(null);
-        setCurrentView('dashboard');
-      }
+    await academicService.deleteCourse(courseId);
+    setCourses((prev) => prev.filter((c) => c.id !== courseId));
+    if (selectedCourseId === courseId) {
+      setSelectedCourseId(null);
+      setCurrentView('dashboard');
     }
   };
 
@@ -226,7 +270,6 @@ export default function App() {
       return [...prev, saved];
     });
 
-    // Si un curso usa este docente, refrescar courses
     setCourses((prev) =>
       prev.map((c) => (c.teacherId === saved.id ? { ...c, teacher: saved } : c))
     );
@@ -266,6 +309,18 @@ export default function App() {
     return courses.reduce((sum, c) => sum + c.credits, 0);
   }, [courses]);
 
+  // Si no hay usuario autenticado, renderizar pantalla de autenticación protegida
+  if (!currentUser) {
+    return (
+      <div className="min-h-screen bg-slate-100 flex flex-col font-sans">
+        <SupabaseConfigBanner />
+        <AuthScreen onLoginSuccess={handleLoginSuccess} />
+      </div>
+    );
+  }
+
+  const isAdmin = currentUser.role === 'admin';
+
   return (
     <div className="min-h-screen bg-slate-100 text-slate-900 flex flex-col font-sans selection:bg-blue-600 selection:text-white">
       {/* Banner de Supabase y Migraciones */}
@@ -277,9 +332,11 @@ export default function App() {
         faculty={faculty}
         career={career}
         semester={semester}
-        user={user}
+        user={currentUser}
         onOpenHierarchyModal={() => setIsHierarchyModalOpen(true)}
-        onSelectRole={handleSelectRole}
+        onOpenCurriculumExplorer={() => setIsCurriculumExplorerOpen(true)}
+        onOpenStudentManagement={() => setIsStudentManagementOpen(true)}
+        onSignOut={handleSignOut}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         onMobileMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -322,24 +379,32 @@ export default function App() {
           >
             Tareas & Evaluaciones
           </button>
-          <div className="pt-2 border-t border-slate-100">
-            <span className="text-[10px] font-bold uppercase text-slate-400 block px-3 mb-1">
-              Materias ({courses.length})
-            </span>
-            {courses.map((c) => (
-              <button
-                key={c.id}
-                onClick={() => {
-                  handleSelectCourse(c.id);
-                  setIsMobileMenuOpen(false);
-                }}
-                className="w-full text-left px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50 rounded-lg flex items-center justify-between"
-              >
-                <span className="truncate">{c.name}</span>
-                <span className="text-[10px] text-slate-400 font-mono">{c.credits}cr</span>
-              </button>
-            ))}
-          </div>
+          <button
+            onClick={() => {
+              setIsMobileMenuOpen(false);
+              setIsCurriculumExplorerOpen(true);
+            }}
+            className="w-full text-left px-3 py-2 rounded-xl text-xs font-semibold text-blue-600 bg-blue-50"
+          >
+            Explorar Malla Curricular (10 Ciclos)
+          </button>
+          {isAdmin && (
+            <button
+              onClick={() => {
+                setIsMobileMenuOpen(false);
+                setIsStudentManagementOpen(true);
+              }}
+              className="w-full text-left px-3 py-2 rounded-xl text-xs font-semibold text-purple-700 bg-purple-50"
+            >
+              Gestión Oficial de Alumnos
+            </button>
+          )}
+          <button
+            onClick={handleSignOut}
+            className="w-full text-left px-3 py-2 rounded-xl text-xs font-semibold text-red-600 bg-red-50"
+          >
+            Cerrar Sesión
+          </button>
         </div>
       )}
 
@@ -351,9 +416,13 @@ export default function App() {
           selectedCourseId={selectedCourseId}
           courses={courses}
           semesterNumber={semester.number}
+          userRole={currentUser.role}
           onSelectView={handleSelectView}
           onSelectCourse={handleSelectCourse}
           onAddCourseClick={() => setIsAddCourseModalOpen(true)}
+          onOpenCurriculumExplorer={() => setIsCurriculumExplorerOpen(true)}
+          onOpenStudentManagement={() => setIsStudentManagementOpen(true)}
+          onSignOut={handleSignOut}
           totalCredits={totalCredits}
         />
 
@@ -368,6 +437,7 @@ export default function App() {
               exams={exams.filter((e) => e.courseId === selectedCourse.id)}
               materials={materials.filter((m) => m.courseId === selectedCourse.id)}
               syllabus={syllabi[selectedCourse.id] || null}
+              userRole={currentUser.role}
               onBack={() => handleSelectView('dashboard')}
               onToggleAssignment={handleToggleAssignment}
               onAddMaterialClick={() => handleOpenAddMaterialModal(selectedCourse.id)}
@@ -387,6 +457,7 @@ export default function App() {
             <LibraryView
               materials={materials}
               courses={courses}
+              userRole={currentUser.role}
               onAddMaterialClick={() => handleOpenAddMaterialModal()}
               onDeleteMaterial={handleDeleteMaterial}
               onSelectCourse={handleSelectCourse}
@@ -409,7 +480,7 @@ export default function App() {
           ) : (
             /* Vista por defecto: Dashboard General */
             <DashboardOverview
-              user={user}
+              user={currentUser}
               courses={filteredCourses}
               assignments={assignments}
               exams={exams}
@@ -437,36 +508,57 @@ export default function App() {
         faculty={faculty}
         career={career}
         semester={semester}
-        user={user}
+        user={currentUser}
         onSelectSemester={handleSelectSemester}
         onUpdateUserProfile={handleUpdateUserProfile}
+        onOpenCurriculumExplorer={() => setIsCurriculumExplorerOpen(true)}
       />
 
-      {/* Modal: Subir Material Académico */}
-      <AddMaterialModal
-        isOpen={isAddMaterialModalOpen}
-        onClose={() => setIsAddMaterialModalOpen(false)}
-        courses={courses}
-        initialCourseId={targetMaterialCourseId}
-        onAddMaterial={handleAddMaterial}
+      {/* Modal: Explorador de Malla Curricular (Informativo de los 10 Ciclos) */}
+      <CurriculumExplorerModal
+        isOpen={isCurriculumExplorerOpen}
+        onClose={() => setIsCurriculumExplorerOpen(false)}
+        currentUser={currentUser}
       />
 
-      {/* Modal: Agregar Asignatura Dinámica */}
-      <AddCourseModal
-        isOpen={isAddCourseModalOpen}
-        onClose={() => setIsAddCourseModalOpen(false)}
-        semesterId={semester.id}
-        semesterNumber={semester.number}
-        teachers={teachers}
-        onAddCourse={handleAddCourse}
-        onOpenNewTeacherModal={() => {
-          setTeacherToEdit(undefined);
-          setIsTeacherModalOpen(true);
-        }}
-      />
+      {/* Modal: Gestión Oficial de Alumnos (Solo Administrador Global) */}
+      {isAdmin && (
+        <StudentManagementModal
+          isOpen={isStudentManagementOpen}
+          onClose={() => setIsStudentManagementOpen(false)}
+          onStudentUpdated={reloadAcademicData}
+        />
+      )}
 
-      {/* Modal: Modificar Asignatura */}
-      {courseToEdit && (
+      {/* Modal: Subir Material Académico (Solo Administrador) */}
+      {isAdmin && (
+        <AddMaterialModal
+          isOpen={isAddMaterialModalOpen}
+          onClose={() => setIsAddMaterialModalOpen(false)}
+          courses={courses}
+          initialCourseId={targetMaterialCourseId}
+          onAddMaterial={handleAddMaterial}
+        />
+      )}
+
+      {/* Modal: Agregar Asignatura Dinámica (Solo Administrador) */}
+      {isAdmin && (
+        <AddCourseModal
+          isOpen={isAddCourseModalOpen}
+          onClose={() => setIsAddCourseModalOpen(false)}
+          semesterId={semester.id}
+          semesterNumber={semester.number}
+          teachers={teachers}
+          onAddCourse={handleAddCourse}
+          onOpenNewTeacherModal={() => {
+            setTeacherToEdit(undefined);
+            setIsTeacherModalOpen(true);
+          }}
+        />
+      )}
+
+      {/* Modal: Modificar Asignatura (Solo Administrador) */}
+      {isAdmin && courseToEdit && (
         <EditCourseModal
           isOpen={!!courseToEdit}
           onClose={() => setCourseToEdit(null)}
@@ -481,19 +573,21 @@ export default function App() {
         />
       )}
 
-      {/* Modal: Registrar o Editar Docente */}
-      <TeacherModal
-        isOpen={isTeacherModalOpen}
-        onClose={() => {
-          setIsTeacherModalOpen(false);
-          setTeacherToEdit(undefined);
-        }}
-        teacherToEdit={teacherToEdit}
-        onSaveTeacher={handleSaveTeacher}
-      />
+      {/* Modal: Registrar o Editar Docente (Solo Administrador) */}
+      {isAdmin && (
+        <TeacherModal
+          isOpen={isTeacherModalOpen}
+          onClose={() => {
+            setIsTeacherModalOpen(false);
+            setTeacherToEdit(undefined);
+          }}
+          teacherToEdit={teacherToEdit}
+          onSaveTeacher={handleSaveTeacher}
+        />
+      )}
 
-      {/* Modal: Modificar Sílabo Oficial */}
-      {isSyllabusModalOpen && syllabusTargetCourse && (
+      {/* Modal: Modificar Sílabo Oficial (Solo Administrador) */}
+      {isAdmin && isSyllabusModalOpen && syllabusTargetCourse && (
         <SyllabusModal
           isOpen={isSyllabusModalOpen}
           onClose={() => {

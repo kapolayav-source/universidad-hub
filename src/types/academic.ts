@@ -1,4 +1,4 @@
-export type UserRole = 'student' | 'teacher' | 'moderator' | 'admin' | 'superadmin';
+export type UserRole = 'admin' | 'student';
 
 export interface UserProfile {
   id: string;
@@ -11,6 +11,7 @@ export interface UserProfile {
   universityId?: string;
   careerId?: string;
   currentSemesterId?: string;
+  enrolledSemesterNumber: number; // Semestre oficial inmutable por el alumno
 }
 
 export interface University {

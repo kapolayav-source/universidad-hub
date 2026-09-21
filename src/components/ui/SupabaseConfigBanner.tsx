@@ -6,7 +6,7 @@ export const SupabaseConfigBanner: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const sqlMigrationPath = 'database/migrations/001_phase1_academic_mvp.sql';
+  const sqlMigrationPath = 'database/migrations/003_secure_auth_roles_and_rls.sql';
 
   const copySqlPath = () => {
     navigator.clipboard.writeText(sqlMigrationPath);
@@ -31,7 +31,7 @@ export const SupabaseConfigBanner: React.FC = () => {
           )}
           <span className="text-slate-500 hidden sm:inline">|</span>
           <span className="text-slate-400 hidden md:inline">
-            Fase 1: MVP Académico listo con RLS y migración SQL.
+            Roles protegidos con Supabase Auth y RLS (Administrador y Alumno).
           </span>
         </div>
 

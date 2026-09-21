@@ -42,6 +42,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
   const pendingAssignments = assignments.filter((a) => a.status === 'pending');
   const completedAssignments = assignments.filter((a) => a.status === 'completed');
 
+  const isAdmin = user.role === 'admin';
   return (
     <div className="space-y-6 pb-12">
       {/* Saludo y Banner Principal */}
@@ -49,13 +50,19 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
         <div className="relative z-10 max-w-2xl space-y-2">
           <div className="inline-flex items-center gap-2 bg-blue-500/20 text-blue-300 text-xs px-3 py-1 rounded-full font-medium border border-blue-400/20">
             <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
-            <span>4.º Semestre • Economía • Periodo 2026-I</span>
+            <span>
+              {isAdmin
+                ? '👑 Administrador Global • Control Integral del Campus • Periodo 2026-I'
+                : `🎓 ${user.enrolledSemesterNumber || 4}.º Semestre Oficial • Economía • Periodo 2026-I`}
+            </span>
           </div>
           <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight">
             Hola, {user.fullName.split(' ')[0]} 👋
           </h1>
           <p className="text-slate-300 text-sm leading-relaxed">
-            Tienes <strong className="text-white font-semibold">{pendingAssignments.length} tareas pendientes</strong> esta semana y <strong className="text-white font-semibold">2 exámenes parciales</strong> en el horizonte.
+            {isAdmin
+              ? 'Tienes acceso administrativo para gestionar cursos, asignar docentes, publicar sílabos oficiales y administrar materiales.'
+              : `Tienes ${pendingAssignments.length} tareas pendientes esta semana y 2 exámenes parciales en el horizonte.`}
           </p>
         </div>
       </div>

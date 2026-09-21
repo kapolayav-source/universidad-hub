@@ -451,7 +451,7 @@ export const INITIAL_EXAMS: Exam[] = [
 ];
 
 export const INITIAL_USER_PROFILE: UserProfile = {
-  id: 'user-demo-1',
+  id: 'user-student-demo',
   email: 'estudiante.economia@unmsm.edu.pe',
   fullName: 'Carlos Alberto Vega',
   studentCode: '22060142',
@@ -461,6 +461,21 @@ export const INITIAL_USER_PROFILE: UserProfile = {
   universityId: 'uni-1',
   careerId: 'car-1',
   currentSemesterId: 'sem-4',
+  enrolledSemesterNumber: 4,
+};
+
+export const INITIAL_ADMIN_PROFILE: UserProfile = {
+  id: 'user-admin-demo',
+  email: 'admin@unmsm.edu.pe',
+  fullName: 'Dra. María Elena Rostworowski',
+  studentCode: 'ADM-001',
+  avatarUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=128&auto=format&fit=crop&q=80',
+  role: 'admin',
+  phoneWhatsapp: '+51999888777',
+  universityId: 'uni-1',
+  careerId: 'car-1',
+  currentSemesterId: 'sem-4',
+  enrolledSemesterNumber: 4,
 };
 
 export const INITIAL_SYLLABI: Record<string, CourseSyllabus> = {

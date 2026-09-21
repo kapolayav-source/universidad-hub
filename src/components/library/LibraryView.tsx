@@ -12,11 +12,12 @@ import {
   Layers,
   Sparkles,
 } from 'lucide-react';
-import { Course, CourseMaterial, MaterialCategory } from '../../types/academic';
+import { Course, CourseMaterial, MaterialCategory, UserRole } from '../../types/academic';
 
 interface LibraryViewProps {
   materials: CourseMaterial[];
   courses: Course[];
+  userRole: UserRole;
   onAddMaterialClick: () => void;
   onDeleteMaterial: (materialId: string) => Promise<void>;
   onSelectCourse: (courseId: string) => void;
@@ -25,10 +26,12 @@ interface LibraryViewProps {
 export const LibraryView: React.FC<LibraryViewProps> = ({
   materials,
   courses,
+  userRole,
   onAddMaterialClick,
   onDeleteMaterial,
   onSelectCourse,
 }) => {
+  const isAdmin = userRole === 'admin';
   const [search, setSearch] = useState('');
   const [selectedCourseFilter, setSelectedCourseFilter] = useState<string>('all');
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>('all');
@@ -107,13 +110,15 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
             </p>
           </div>
 
-          <button
-            onClick={onAddMaterialClick}
-            className="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs px-4 py-2.5 rounded-2xl shadow-xs transition-colors shrink-0 cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Subir Material</span>
-          </button>
+          {isAdmin && (
+            <button
+              onClick={onAddMaterialClick}
+              className="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs px-4 py-2.5 rounded-2xl shadow-xs transition-colors shrink-0 cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Subir Material</span>
+            </button>
+          )}
         </div>
 
         {/* Filtros y Buscador */}
@@ -173,12 +178,14 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
           <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1">
             Intenta con otro término de búsqueda o selecciona una categoría diferente.
           </p>
-          <button
-            onClick={onAddMaterialClick}
-            className="mt-4 px-4 py-2 bg-blue-50 text-blue-700 font-semibold text-xs rounded-xl hover:bg-blue-100 transition-colors cursor-pointer"
-          >
-            Subir primer archivo
-          </button>
+          {isAdmin && (
+            <button
+              onClick={onAddMaterialClick}
+              className="mt-4 px-4 py-2 bg-blue-50 text-blue-700 font-semibold text-xs rounded-xl hover:bg-blue-100 transition-colors cursor-pointer"
+            >
+              Subir primer archivo
+            </button>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -241,13 +248,15 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
                   </span>
 
                   <div className="flex items-center gap-1.5">
-                    <button
-                      onClick={() => onDeleteMaterial(mat.id)}
-                      title="Eliminar recurso"
-                      className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                    {isAdmin && (
+                      <button
+                        onClick={() => onDeleteMaterial(mat.id)}
+                        title="Eliminar recurso"
+                        className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
 
                     <a
                       href={mat.fileUrl}

@@ -20,7 +20,7 @@ import {
   ExternalLink,
   Sparkles,
 } from 'lucide-react';
-import { Course, ClassSession, Assignment, Exam, CourseMaterial, CourseSyllabus } from '../../types/academic';
+import { Course, ClassSession, Assignment, Exam, CourseMaterial, CourseSyllabus, UserRole } from '../../types/academic';
 
 interface CourseSpaceProps {
   course: Course;
@@ -29,6 +29,7 @@ interface CourseSpaceProps {
   exams: Exam[];
   materials: CourseMaterial[];
   syllabus: CourseSyllabus | null;
+  userRole: UserRole;
   onBack: () => void;
   onToggleAssignment: (assignmentId: string) => void;
   onAddMaterialClick: () => void;
@@ -45,6 +46,7 @@ export const CourseSpace: React.FC<CourseSpaceProps> = ({
   exams,
   materials,
   syllabus,
+  userRole,
   onBack,
   onToggleAssignment,
   onAddMaterialClick,
@@ -53,6 +55,7 @@ export const CourseSpace: React.FC<CourseSpaceProps> = ({
   onEditSyllabusClick,
   onEditTeacherClick,
 }) => {
+  const isAdmin = userRole === 'admin';
   const [activeTab, setActiveTab] = useState<'classes' | 'assignments' | 'materials' | 'exams' | 'info'>('classes');
 
   const tabs = [
@@ -92,13 +95,15 @@ export const CourseSpace: React.FC<CourseSpaceProps> = ({
           <span>Volver a todos los cursos</span>
         </button>
 
-        <button
-          onClick={onEditCourseClick}
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-700 hover:text-blue-700 bg-white px-3 py-1.5 rounded-xl border border-slate-200 hover:border-blue-300 transition-colors cursor-pointer"
-        >
-          <Edit3 className="w-3.5 h-3.5" />
-          <span>Modificar Asignatura</span>
-        </button>
+        {isAdmin && (
+          <button
+            onClick={onEditCourseClick}
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-700 hover:text-blue-700 bg-white px-3 py-1.5 rounded-xl border border-slate-200 hover:border-blue-300 transition-colors cursor-pointer"
+          >
+            <Edit3 className="w-3.5 h-3.5" />
+            <span>Modificar Asignatura</span>
+          </button>
+        )}
       </div>
 
       {/* Cabecera del Curso */}
@@ -432,27 +437,31 @@ export const CourseSpace: React.FC<CourseSpaceProps> = ({
                 Archivos, diapositivas y lecturas sincronizados con Supabase
               </p>
             </div>
-            <button
-              onClick={onAddMaterialClick}
-              className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-xl transition-colors cursor-pointer shrink-0"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Subir Archivo / Material</span>
-            </button>
+            {isAdmin && (
+              <button
+                onClick={onAddMaterialClick}
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-xl transition-colors cursor-pointer shrink-0"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Subir Archivo / Material</span>
+              </button>
+            )}
           </div>
 
           {materials.length === 0 ? (
             <div className="bg-white rounded-2xl border border-slate-200 p-10 text-center space-y-3">
               <FolderOpen className="w-10 h-10 text-slate-300 mx-auto" />
               <p className="text-xs text-slate-500">
-                Aún no has subido archivos a la biblioteca de este curso.
+                Aún no hay archivos subidos en la biblioteca de este curso.
               </p>
-              <button
-                onClick={onAddMaterialClick}
-                className="px-4 py-2 bg-blue-50 text-blue-700 font-semibold text-xs rounded-xl hover:bg-blue-100 transition-colors cursor-pointer"
-              >
-                Subir primer documento
-              </button>
+              {isAdmin && (
+                <button
+                  onClick={onAddMaterialClick}
+                  className="px-4 py-2 bg-blue-50 text-blue-700 font-semibold text-xs rounded-xl hover:bg-blue-100 transition-colors cursor-pointer"
+                >
+                  Subir primer documento
+                </button>
+              )}
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -493,13 +502,15 @@ export const CourseSpace: React.FC<CourseSpaceProps> = ({
                         {mat.downloadCount || 0} descargas
                       </span>
                       <div className="flex items-center gap-1">
-                        <button
-                          onClick={() => onDeleteMaterial(mat.id)}
-                          className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors cursor-pointer"
-                          title="Eliminar archivo"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                        {isAdmin && (
+                          <button
+                            onClick={() => onDeleteMaterial(mat.id)}
+                            className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors cursor-pointer"
+                            title="Eliminar archivo"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                         <a
                           href={mat.fileUrl}
                           target="_blank"
@@ -551,13 +562,15 @@ export const CourseSpace: React.FC<CourseSpaceProps> = ({
                     <span>Descargar Sílabo PDF</span>
                   </a>
                 )}
-                <button
-                  onClick={onEditSyllabusClick}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-xl border border-emerald-200 transition-colors cursor-pointer"
-                >
-                  <Edit3 className="w-3.5 h-3.5" />
-                  <span>Modificar Sílabo</span>
-                </button>
+                {isAdmin && (
+                  <button
+                    onClick={onEditSyllabusClick}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-xl border border-emerald-200 transition-colors cursor-pointer"
+                  >
+                    <Edit3 className="w-3.5 h-3.5" />
+                    <span>Modificar Sílabo</span>
+                  </button>
+                )}
               </div>
             </div>
 
@@ -608,13 +621,15 @@ export const CourseSpace: React.FC<CourseSpaceProps> = ({
           <div className="bg-white rounded-3xl border border-slate-200 p-6 space-y-4 shadow-2xs">
             <div className="flex items-center justify-between">
               <h3 className="text-base font-bold text-slate-900">Contacto con la Cátedra</h3>
-              <button
-                onClick={onEditTeacherClick}
-                className="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1 cursor-pointer"
-              >
-                <Edit3 className="w-3.5 h-3.5" />
-                <span>Editar Docente</span>
-              </button>
+              {isAdmin && (
+                <button
+                  onClick={onEditTeacherClick}
+                  className="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1 cursor-pointer"
+                >
+                  <Edit3 className="w-3.5 h-3.5" />
+                  <span>Editar Docente</span>
+                </button>
+              )}
             </div>
 
             {course.teacher ? (

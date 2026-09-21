@@ -10,17 +10,24 @@ import {
   GraduationCap,
   Library,
   Plus,
+  Users,
+  LogOut,
+  Shield,
 } from 'lucide-react';
-import { Course } from '../../types/academic';
+import { Course, UserRole } from '../../types/academic';
 
 interface SidebarProps {
   currentView: 'dashboard' | 'course' | 'tasks' | 'schedule' | 'library';
   selectedCourseId: string | null;
   courses: Course[];
   semesterNumber: number;
+  userRole: UserRole;
   onSelectView: (view: 'dashboard' | 'tasks' | 'schedule' | 'library') => void;
   onSelectCourse: (courseId: string) => void;
   onAddCourseClick: () => void;
+  onOpenCurriculumExplorer: () => void;
+  onOpenStudentManagement?: () => void;
+  onSignOut: () => void;
   totalCredits: number;
 }
 
@@ -29,13 +36,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
   selectedCourseId,
   courses,
   semesterNumber,
+  userRole,
   onSelectView,
   onSelectCourse,
   onAddCourseClick,
+  onOpenCurriculumExplorer,
+  onOpenStudentManagement,
+  onSignOut,
   totalCredits,
 }) => {
+  const isAdmin = userRole === 'admin';
+
   return (
-    <aside aria-label="Navegación principal" className="w-64 bg-white border-r border-slate-200 h-[calc(100vh-4rem)] sticky top-16 hidden md:flex flex-col justify-between p-4 overflow-y-auto">
+    <aside
+      aria-label="Navegación principal"
+      className="w-64 bg-white border-r border-slate-200 h-[calc(100vh-4rem)] sticky top-16 hidden md:flex flex-col justify-between p-4 overflow-y-auto"
+    >
       <div className="space-y-5">
         {/* Navegación Principal */}
         <div className="space-y-1">
@@ -65,7 +81,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <Library className="w-4 h-4" />
             <div className="flex items-center justify-between flex-1">
               <span>Biblioteca & Archivos</span>
-              <span className="text-[10px] bg-blue-100 text-blue-800 px-1.5 py-0.2 rounded font-bold">Fase 2</span>
+              <span className="text-[10px] bg-blue-100 text-blue-800 px-1.5 py-0.2 rounded font-bold">
+                {isAdmin ? 'Gestión' : 'Consulta'}
+              </span>
             </div>
           </button>
 
@@ -92,25 +110,47 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <CheckSquare className="w-4 h-4" />
             <span>Tareas & Evaluaciones</span>
           </button>
+
+          <button
+            onClick={onOpenCurriculumExplorer}
+            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-50 hover:text-blue-700 transition-all cursor-pointer"
+          >
+            <BookOpen className="w-4 h-4 text-blue-600" />
+            <span>Explorar Malla (10 Ciclos)</span>
+          </button>
+
+          {/* Acceso a Gestión de Alumnos exclusivo para el Administrador */}
+          {isAdmin && onOpenStudentManagement && (
+            <button
+              onClick={onOpenStudentManagement}
+              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-purple-700 bg-purple-50/60 hover:bg-purple-100/70 transition-all cursor-pointer border border-purple-200/60"
+            >
+              <Users className="w-4 h-4 text-purple-600" />
+              <span>Gestión de Alumnos</span>
+            </button>
+          )}
         </div>
 
-        {/* Cursos del Semestre Actual */}
+        {/* Cursos del Semestre */}
         <div className="space-y-1">
           <div className="flex items-center justify-between px-3 mb-1.5">
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-              Cursos ({semesterNumber}.º Semestre)
+              Cursos ({semesterNumber}.º Ciclo)
             </span>
-            <button
-              onClick={onAddCourseClick}
-              className="text-[10px] font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-0.5 hover:underline cursor-pointer"
-              title="Agregar nueva asignatura dinámicamente"
-            >
-              <Plus className="w-3 h-3" />
-              <span>Nuevo</span>
-            </button>
+            {/* Solo Administrador Global puede añadir asignaturas */}
+            {isAdmin && (
+              <button
+                onClick={onAddCourseClick}
+                className="text-[10px] font-semibold text-purple-700 hover:text-purple-900 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-200 flex items-center gap-0.5 cursor-pointer"
+                title="Crear nueva asignatura"
+              >
+                <Plus className="w-3 h-3" />
+                <span>Nuevo</span>
+              </button>
+            )}
           </div>
 
-          <div className="space-y-0.5 max-h-48 overflow-y-auto pr-1">
+          <div className="space-y-0.5 max-h-44 overflow-y-auto pr-1">
             {courses.map((course) => {
               const isSelected = currentView === 'course' && selectedCourseId === course.id;
               return (
@@ -189,9 +229,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
       </div>
 
-      {/* Footer del Sidebar */}
-      <div className="pt-3 border-t border-slate-100 text-[11px] text-slate-400 text-center">
-        <span>Universidad Hub • Fase 2 Activa</span>
+      {/* Footer con Botón de Cerrar Sesión */}
+      <div className="pt-3 border-t border-slate-200 space-y-2">
+        <button
+          onClick={onSignOut}
+          className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-bold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100/70 rounded-xl transition-colors cursor-pointer border border-red-100"
+        >
+          <LogOut className="w-3.5 h-3.5" />
+          <span>Cerrar Sesión</span>
+        </button>
+        <div className="text-[10px] text-slate-400 text-center">
+          {isAdmin ? '🛡️ Sesión Administrador Global' : '🎓 Sesión de Alumno Oficial'}
+        </div>
       </div>
     </aside>
   );
