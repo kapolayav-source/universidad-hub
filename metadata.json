@@ -1,0 +1,6 @@
+{
+  "name": "Universidad Hub",
+  "description": "Plataforma académica integral y multiplataforma para estudiantes universitarios con gestión de cursos, materiales, IA y calendario.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
